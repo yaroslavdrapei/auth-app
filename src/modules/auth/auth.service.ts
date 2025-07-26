@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { UsersRepository } from '@infrastructure/drizzle/repositories/users.repository';
 import * as argon2 from 'argon2';
 import { NewUser } from '@infrastructure/drizzle/drizzle.schema';
@@ -8,6 +8,8 @@ import { RedisService } from '@infrastructure/redis/redis.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+  
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly jwtService: JwtService,
@@ -23,8 +25,11 @@ export class AuthService {
 
     const isPasswordValid = await argon2.verify(user.passwordHash, password);
     if (!isPasswordValid) {
+      this.logger.warn(`Failed login attempt for user: ${username}`);
       throw new BadRequestException('Invalid credentials');
     }
+
+    this.logger.log(`User ${username} logged in successfully`);
 
     const payload = { id: user.id, username: user.username, fullName: user.fullName } as JwtPayload;
     const token = await this.jwtService.signAsync(payload);
@@ -46,6 +51,7 @@ export class AuthService {
     };
 
     await this.usersRepository.create(newUser);
+    this.logger.log(`User ${username} signed up successfully`);
   }
 
   async verify(token: string): Promise<JwtPayload> {
@@ -54,6 +60,7 @@ export class AuthService {
 
     if (cachedPayloadRaw) {
       const cachedPayload = JSON.parse(cachedPayloadRaw) as JwtPayload;
+      this.logger.log(`Cached verified token for user: ${cachedPayload.username}`);
       return cachedPayload;
     }
 
@@ -68,6 +75,7 @@ export class AuthService {
       }
 
       await this.redisService.set(cacheKey, JSON.stringify(payload), timeLeftToExpiration);
+      this.logger.log(`Token verified and cached for user: ${payload.username}`);
       return payload;
     } catch {
       throw new UnauthorizedException('Invalid token');
