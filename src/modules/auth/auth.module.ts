@@ -13,7 +13,7 @@ import { InfrastructureModule } from '@infrastructure/infrastructure.module';
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow('JWT_SECRET'),
         signOptions: {
-          expiresIn: `${config.get('JWT_EXPIRATION_IN_MINUTES')}m`
+          expiresIn: `${config.getOrThrow('JWT_EXPIRATION_IN_MINUTES')}m`
         }
       })
     }),

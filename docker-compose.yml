@@ -8,6 +8,7 @@ services:
       - .env.development
     depends_on:
       - postgres
+    restart: on-failure
       
   auth-service:
     build:
