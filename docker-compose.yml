@@ -1,4 +1,14 @@
 services:
+  migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["npm", "run", "drizzle:migrate"]
+    env_file:
+      - .env.development
+    depends_on:
+      - postgres
+      
   auth-service:
     build:
       context: .
@@ -35,16 +45,6 @@ services:
     volumes:
       - redis_data:/data
     restart: always
-
-  migrations:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: ["npm", "run", "drizzle:migrate"]
-    env_file:
-      - .env.development
-    depends_on:
-      - postgres
 
 volumes:
   postgres_data:
