@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass ${REDIS_PASS}
+    ports:
+      - "6379:6379"
+
+  migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["npm", "run", "drizzle:migrate"]
+    env_file:
+      - .env.e2e
+    depends_on:
+      - postgres
+    restart: on-failure
+      
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["npx", "jest", "--config", "./test/jest-e2e.json"]
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env.e2e
+    depends_on:
+      - postgres
+      - redis
+      - migrations
+
